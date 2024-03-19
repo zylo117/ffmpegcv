@@ -1,12 +1,17 @@
 import numpy as np
 import pprint
 import os
+
 from .video_info import (
     run_async,
     get_info,
     get_num_NVIDIA_GPUs,
     decoder_to_nvidia,
     release_process,
+    is_local,
+)
+from .stream_info import (
+    get_info as get_stream_info
 )
 
 
@@ -124,13 +129,20 @@ class FFmpegReader:
         resize_keepratio,
         resize_keepratioalign,
     ):
-        assert os.path.exists(filename) and os.path.isfile(
-            filename
-        ), f"{filename} not exists"
+        if is_local(filename):
+            is_local_src = True
+            assert os.path.exists(filename) and os.path.isfile(
+                filename
+            ), f"{filename} not exists"
+        else:
+            is_local_src = False
         assert pix_fmt in ["rgb24", "bgr24", "yuv420p", "yuvj420p", "nv12", "gray"]
 
         vid = FFmpegReader()
-        videoinfo = get_info(filename)
+        if is_local_src:
+            videoinfo = get_info(filename)
+        else:
+            videoinfo = get_stream_info(filename)
         vid.origin_width = videoinfo.width
         vid.origin_height = videoinfo.height
         vid.fps = videoinfo.fps
@@ -258,9 +270,13 @@ class FFmpegReaderNV(FFmpegReader):
         resize_keepratioalign,
         gpu,
     ):
-        assert os.path.exists(filename) and os.path.isfile(
-            filename
-        ), f"{filename} not exists"
+        if is_local(filename):
+            is_local_src = True
+            assert os.path.exists(filename) and os.path.isfile(
+                filename
+            ), f"{filename} not exists"
+        else:
+            is_local_src = False
         assert pix_fmt in ["rgb24", "bgr24", "yuv420p", "nv12", "gray"]
         numGPU = get_num_NVIDIA_GPUs()
         assert numGPU > 0, "No GPU found"
@@ -268,7 +284,10 @@ class FFmpegReaderNV(FFmpegReader):
         assert (
             resize is None or len(resize) == 2
         ), "resize must be a tuple of (width, height)"
-        videoinfo = get_info(filename)
+        if is_local_src:
+            videoinfo = get_info(filename)
+        else:
+            videoinfo = get_stream_info(filename)
         vid = FFmpegReaderNV()
         isgray = pix_fmt == "gray"
         cropopt, scaleopt, filteropt = vid._get_opts(

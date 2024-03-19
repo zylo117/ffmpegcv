@@ -4,6 +4,7 @@ from .video_info import (
     get_info,
     get_num_QSV_GPUs,
     decoder_to_qsv,
+    is_local,
 )
 
 
@@ -22,9 +23,13 @@ class FFmpegReaderQSV(FFmpegReader):
         TODO: 1. only 1 gpu is recognized
         TODO: 2. 'crop_xywh', 'resize*' are not supported yet
         """
-        assert os.path.exists(filename) and os.path.isfile(
-            filename
-        ), f"{filename} not exists"
+        if is_local(filename):
+            is_local_src = True
+            assert os.path.exists(filename) and os.path.isfile(
+                filename
+            ), f"{filename} not exists"
+        else:
+            is_local_src = False
         assert pix_fmt in ["rgb24", "bgr24", "yuv420p", "nv12", "gray"]
         assert gpu is None or gpu == 0, 'Cannot use multiple QSV gpu yet.'
         numGPU = get_num_QSV_GPUs()
@@ -35,7 +40,10 @@ class FFmpegReaderQSV(FFmpegReader):
         ), "resize must be a tuple of (width, height)"
 
         vid = FFmpegReaderQSV()
-        videoinfo = get_info(filename)
+        if is_local_src:
+            videoinfo = get_info(filename)
+        else:
+            videoinfo = get_stream_info(filename)
         vid.origin_width = videoinfo.width
         vid.origin_height = videoinfo.height
         vid.fps = videoinfo.fps

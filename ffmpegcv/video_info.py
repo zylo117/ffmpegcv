@@ -4,6 +4,7 @@ import re
 from collections import namedtuple
 import xml.etree.ElementTree as ET
 import shlex
+from urllib.parse import urlparse
 
 scan_the_whole = {'mkv', 'flv', 'ts'} #scan the whole file to the count, slow
 
@@ -13,7 +14,14 @@ _num_NVIDIA_GPUs = -1
 _num_QSV_GPUs = -1
 
 
-def get_info(video:str):
+def is_local(url):
+    url_parsed = urlparse(url)
+    if url_parsed.scheme in ('file', ''):  # Possibly a local file
+        return True
+    return False
+
+
+def get_info(video: str):
     do_scan_the_whole = video.split('.')[-1] in scan_the_whole
 
     def ffprobe_info_(do_scan_the_whole):
