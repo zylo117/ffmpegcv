@@ -133,7 +133,7 @@ class FFmpegWriterNV(FFmpegWriter):
         bitrate_str = f'-b:v {self.bitrate} ' if self.bitrate else ''
         rtsp_str = f'-f rtsp' if self.filename.startswith('rtsp://') else ''
         filter_str = '' if self.resize == self.size else f'-vf scale={self.resize[0]}:{self.resize[1]}'
-        default_preset = 'default' if IN_COLAB else 'p2'
+        default_preset = 'default' if IN_COLAB else 'll'
         self.preset = getattr(self, 'preset', default_preset)
         self.ffmpeg_cmd = (f'ffmpeg -y -loglevel warning '
             f'-f rawvideo -pix_fmt {self.pix_fmt} -s {self.width}x{self.height} -r {self.fps} -i pipe: '
