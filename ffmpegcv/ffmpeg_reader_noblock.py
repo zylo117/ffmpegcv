@@ -9,6 +9,8 @@ class FFmpegReaderNoblock(FFmpegReader):
     def __init__(self, 
                  vcap_fun,
                  *vcap_args, **vcap_kwargs):
+        self.abandon_outdated_frames = vcap_kwargs.pop('abandon_outdated_frames', False)
+
         vid:FFmpegReader = vcap_fun(*vcap_args, **vcap_kwargs)
         vid.release()
 
@@ -29,6 +31,8 @@ class FFmpegReaderNoblock(FFmpegReader):
         self.vcap_args = vcap_args
         self.vcap_kwargs = vcap_kwargs
         self.q = Queue(maxsize=(NFRAME-2)*2)
+        self.q_maxlen = (NFRAME-2)*2
+        
         self.vcap_fun = vcap_fun
         self.has_init = False
         self.process = None
@@ -37,8 +41,9 @@ class FFmpegReaderNoblock(FFmpegReader):
         if not self.has_init:
             self.has_init = True
             process = multiprocessing.Process(target=child_process, 
-                                              args=(self.shared_array, self.q, self.vcap_fun,
-                                                    self.vcap_args, self.vcap_kwargs))
+                                              args=(self.shared_array, self.q,
+                                                    self.q_maxlen, self.abandon_outdated_frames,
+                                                    self.vcap_fun, self.vcap_args, self.vcap_kwargs))
             process.start()
             self.process = process
         
@@ -51,12 +56,16 @@ class FFmpegReaderNoblock(FFmpegReader):
             return True, self.np_array[data_id]
 
 
-def child_process(shared_array, q:Queue, vcap_fun, vcap_args, vcap_kwargs):
+def child_process(shared_array, q:Queue, q_maxlen: int, abandon_outdated_frames: bool,
+                  vcap_fun, vcap_args, vcap_kwargs):
     vid = vcap_fun(*vcap_args, **vcap_kwargs)
     np_array = np.frombuffer(shared_array.get_obj(), dtype=np.uint8).reshape((NFRAME,*vid.out_numpy_shape))
     anything = True
     with vid:
         for i, img in enumerate(vid):
+            if abandon_outdated_frames and q.qsize() > q_maxlen - 2:
+                q.get()
+                q.get()
             iloop = i % NFRAME
             # 在子进程中修改共享内存的NumPy数组
             q.put(anything) # 通知主进程可以读取了
