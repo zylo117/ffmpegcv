@@ -1,8 +1,11 @@
+import logging
 from multiprocessing import Queue, Process, Array
 import numpy as np
 from .ffmpeg_writer import FFmpegWriter
 
 NFRAME = 10
+
+logger = logging.getLogger()
 
 class FFmpegWriterNoblock(FFmpegWriter):
     def __init__(self,
@@ -67,4 +70,9 @@ def child_process(shared_array, q:Queue, in_numpy_shape, vwriter_fun, vwriter_ar
                 break
             else:
                 img = np_array[data_id]
-                vid.write(img)
+                try:
+                    vid.write(img)
+                except BrokenPipeError:
+                    logger.info('pipe could be closed already, releasing')
+                    vid.release()
+                    logger.info('pipe could be closed already, released')
