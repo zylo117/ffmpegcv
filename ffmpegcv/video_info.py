@@ -4,14 +4,15 @@ import re
 from collections import namedtuple
 import xml.etree.ElementTree as ET
 import shlex
+import platform
 
 scan_the_whole = {'mkv', 'flv', 'ts'} #scan the whole file to the count, slow
 
+_is_windows = platform.system() == 'Windows'
 _inited_get_num_NVIDIA_GPUs = False
 _inited_get_num_QSV_GPUs = False
 _num_NVIDIA_GPUs = -1
 _num_QSV_GPUs = -1
-
 
 def get_info(video:str):
     do_scan_the_whole = video.split('.')[-1] in scan_the_whole
@@ -162,9 +163,8 @@ def decoder_to_qsv(codec):
         raise Exception("No QSV codec found for %s" % codec)
 
 
-def run_async(args):
-    quiet = True
-    stderr_stream = subprocess.DEVNULL if quiet else None
+def run_async(args, debug=True):
+    stderr_stream = None if debug else subprocess.DEVNULL
     bufsize = -1
     if isinstance(args, str):
         args = shlex.split(args)
@@ -178,12 +178,12 @@ def run_async(args):
     )
 
 
-def release_process(process):
+def release_process(process:Popen):
     if hasattr(process, "stdin"):
         process.stdin.close()
     if hasattr(process, "stdout"):
         process.stdout.close()
-    if hasattr(process, "terminate"):
+    if hasattr(process, "terminate") and not _is_windows:
         process.terminate()
     if hasattr(process, "wait"):
         process.wait()
