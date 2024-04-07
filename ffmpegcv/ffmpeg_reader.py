@@ -94,6 +94,7 @@ class FFmpegReader:
         self.waitInit = True
         self.process = None
         self._isopen = True
+        self.debug = False
         self.out_numpy_shape = (None, None, None)
 
     def __repr__(self):
