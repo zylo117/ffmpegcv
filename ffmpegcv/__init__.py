@@ -2,7 +2,7 @@ from .ffmpeg_reader import FFmpegReader, FFmpegReaderNV
 from .ffmpeg_writer import FFmpegWriter, FFmpegWriterNV
 from .ffmpeg_reader_camera import FFmpegReaderCAM
 from .ffmpeg_reader_stream import FFmpegReaderStream
-from .ffmpeg_reader_stream_realtime import FFmpegReaderStreamRT
+from .ffmpeg_reader_stream_realtime import FFmpegReaderStreamRT, FFmpegReaderStreamRTNV
 from .ffmpeg_writer_stream_realtime import FFmpegWriterStreamRT
 from .ffmpeg_reader_qsv import FFmpegReaderQSV
 from .ffmpeg_writer_qsv import FFmpegWriterQSV
@@ -67,7 +67,7 @@ def VideoCapture(
     resize=None,
     resize_keepratio=True,
     resize_keepratioalign="center",
-):
+) -> FFmpegReader:
     """
     Alternative to cv2.VideoCapture
 
@@ -159,7 +159,7 @@ def VideoCapture(
 VideoReader = VideoCapture
 
 
-def VideoWriter(file, codec=None, fps=30, pix_fmt="bgr24", bitrate=None, resize=None):
+def VideoWriter(file, codec=None, fps=30, pix_fmt="bgr24", bitrate=None, resize=None, preset=None):
     """
     Alternative to cv2.VideoWriter
 
@@ -177,7 +177,8 @@ def VideoWriter(file, codec=None, fps=30, pix_fmt="bgr24", bitrate=None, resize=
         Bitrate of output video. Optional. Default is `None`.
     resize : tuple
         Frame size of output. (width, height). Optional. Default is `None`.
-
+    preset : str
+        Preset of ffmpeg. Optional. Default is `None`.
     Examples
     --------
     opencv
@@ -218,7 +219,7 @@ def VideoWriter(file, codec=None, fps=30, pix_fmt="bgr24", bitrate=None, resize=
 
     Author: Chenxinfeng 2022-04-16, cxf529125853@163.com
     """
-    return FFmpegWriter.VideoWriter(file, codec, fps, pix_fmt, bitrate, resize)
+    return FFmpegWriter.VideoWriter(file, codec, fps, pix_fmt, bitrate, resize, preset=preset)
 
 
 def VideoCaptureNV(
@@ -229,7 +230,7 @@ def VideoCaptureNV(
     resize_keepratio=True,
     resize_keepratioalign="center",
     gpu=0,
-):
+) -> FFmpegReaderNV:
     """
     `ffmpegcv.VideoCaptureNV` is a gpu version for `ffmpegcv.VideoCapture`.
     """
@@ -250,7 +251,7 @@ def VideoCaptureQSV(
     resize_keepratio=True,
     resize_keepratioalign="center",
     gpu=0,
-):
+) -> FFmpegReaderQSV:
     """
     `ffmpegcv.VideoCaptureQSV` is a gpu version for `ffmpegcv.VideoCapture`.
     """
@@ -262,23 +263,23 @@ def VideoCaptureQSV(
 VideoReaderQSV = VideoCaptureQSV
 
 
-def VideoWriterNV(file, codec=None, fps=30, pix_fmt="bgr24", gpu=0, bitrate=None, resize=None):
+def VideoWriterNV(file, codec=None, fps=30, pix_fmt="bgr24", gpu=0, bitrate=None, resize=None, preset=None):
     """
     `ffmpegcv.VideoWriterNV` is a gpu version for `ffmpegcv.VideoWriter`.
     """
     _check_nvidia()
-    return FFmpegWriterNV.VideoWriter(file, codec, fps, pix_fmt, gpu, bitrate, resize)
+    return FFmpegWriterNV.VideoWriter(file, codec, fps, pix_fmt, gpu, bitrate, resize, preset=preset)
 
 
-def VideoWriterQSV(file, codec=None, fps=30, pix_fmt="bgr24", gpu=0, bitrate=None, resize=None):
+def VideoWriterQSV(file, codec=None, fps=30, pix_fmt="bgr24", gpu=0, bitrate=None, resize=None, preset=None):
     """
     `ffmpegcv.VideoWriterQSV` is a gpu version for `ffmpegcv.VideoWriter`.
     """
-    return FFmpegWriterQSV.VideoWriter(file, codec, fps, pix_fmt, gpu, bitrate, resize)
+    return FFmpegWriterQSV.VideoWriter(file, codec, fps, pix_fmt, gpu, bitrate, resize, preset=preset)
 
 
-def VideoWriterStreamRT(url, pix_fmt="bgr24", bitrate=None, resize=None):
-    return FFmpegWriterStreamRT.VideoWriter(url, 'libx264', pix_fmt, bitrate, resize)
+def VideoWriterStreamRT(url, pix_fmt="bgr24", bitrate=None, resize=None, preset=None):
+    return FFmpegWriterStreamRT.VideoWriter(url, 'libx264', pix_fmt, bitrate, resize, preset)
 
 
 def VideoCaptureCAM(
@@ -292,7 +293,7 @@ def VideoCaptureCAM(
     camfps=None,
     camcodec=None,
     campix_fmt=None,
-):
+) -> FFmpegReaderCAM:
     """
     Alternative to cv2.VideoCapture
 
@@ -383,7 +384,7 @@ def VideoCaptureStream(
     resize=None,
     resize_keepratio=True,
     resize_keepratioalign="center"
-):
+) -> FFmpegReaderStream:
     """
     Alternative to cv2.VideoCapture
 
@@ -449,16 +450,29 @@ def VideoCaptureStreamRT(
     resize=None,
     resize_keepratio=True,
     resize_keepratioalign="center",
-):
-    return FFmpegReaderStreamRT.VideoReader(
-        stream_url, 
-        codec, 
-        pix_fmt,
-        crop_xywh,
-        resize,
-        resize_keepratio,
-        resize_keepratioalign
-    )
+    gpu=None
+) -> FFmpegReaderStreamRT:
+    if gpu is None:
+        return FFmpegReaderStreamRT.VideoReader(
+            stream_url, 
+            codec, 
+            pix_fmt,
+            crop_xywh,
+            resize,
+            resize_keepratio,
+            resize_keepratioalign
+        )
+    else:
+        return FFmpegReaderStreamRTNV.VideoReader(
+            stream_url, 
+            codec, 
+            pix_fmt,
+            crop_xywh,
+            resize,
+            resize_keepratio,
+            resize_keepratioalign,
+            gpu=gpu
+        )
 
 
 VideoReaderStreamRT = VideoCaptureStreamRT

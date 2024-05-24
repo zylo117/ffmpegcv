@@ -14,12 +14,11 @@ The ffmpegcv provide Video Reader and Video Witer with ffmpeg backbone, which ar
 - The ffmpegcv can use **GPU accelerate** encoding and decoding*.
 - The ffmpegcv supports much more video **codecs** v.s. open-cv.
 - The ffmpegcv supports **RGB** & BGR & GRAY format as you like.
-- The ffmpegcv supports fp32 CHW & HWC format short to cuda.
+- The ffmpegcv supports fp32 CHW & HWC format shortcut to CUDA memory.
 - The ffmpegcv supports **Stream reading** (IP Camera) in low latency.
 - The ffmpegcv supports ROI operations.You can **crop**, **resize** and **pad** the ROI.
-- The ffmpegcv supports shortcut to CUDA memory copy.
 
-In all, ffmpegcv is just similar to opencv api. But is has more codecs and does't require opencv installed. It's great for deeplearning pipeline.
+In all, ffmpegcv is just similar to opencv api. But it has more codecs and does't require opencv installed at all. It's great for deeplearning pipeline.
 
 ## Functions:
 - `VideoWriter`: Write a video file.
@@ -43,6 +42,9 @@ You need to download ffmpeg before you can use ffmpegcv.
  #2. python
  pip install ffmpegcv                                      #stable verison
  pip install git+https://github.com/chenxinfeng4/ffmpegcv  #latest verison
+
+ #3. recommand when using cuda
+ pip install ffmpegcv[cuda]
 ```
 
 ## When should choose `ffmpegcv` other than `opencv`:
@@ -193,7 +195,8 @@ The ffmpegcv can translate the video/stream from HWC-uint8 cpu to CHW-float32 in
 
 Prepare your environment. The cuda environment is required. The `pycuda` package is required. The `pytorch` package is non-essential.
 > nvcc --version      # check you've installed NVIDIA CUDA Compiler
-> pip install pycuda  # install the pycuda, make sure
+>
+> pip install ffmpegcv[cuda]  #or pip install the pycuda
 
 ```python
 # Read a video file to CUDA device, original
@@ -202,24 +205,24 @@ ret, frame_HWC_CPU = cap.read()
 frame_CHW_CUDA = torch.from_numpy(frame_HWC_CPU).permute(2, 0, 1).cuda().contiguous().float()    # 120fps, 1200% CPU load
 
 # speed up
-cap = toCUDA(ffmpegcv.VideoCapture(file, pix_fmt='yuv420p')) #must, yuv420p for cpu codec
-cap = toCUDA(ffmpegcv.VideoCaptureNV(file, pix_fmt='nv12'))  #must, nv12 for gpu codec
-cap = toCUDA(vid, tensor_format='chw') #tensor format:'chw'(defalut) or 'hwc'
+cap = toCUDA(ffmpegcv.VideoCapture(file, pix_fmt='yuv420p')) #pix_fmt: 'yuv420p' or 'nv12' only
+cap = toCUDA(ffmpegcv.VideoCaptureNV(file, pix_fmt='nv12'))  #'nv12' is better for gpu
+cap = toCUDA(vid, tensor_format='chw') #tensor format:'chw'(default) or 'hwc', fp32 precision
 cap = toCUDA(vid, gpu=1) #choose gpu
 
 # read to the cuda device
-ret, frame_CHW_pycuda = cap.read()     #380fps, 200% CPU load, [pycuda array]
-ret, frame_CHW_pycudamem = cap.read_cudamem()  #same as [pycuda mem_alloc]
-ret, frame_CHW_CUDA = cap.read_torch()  #same as [pytorch tensor]
+ret, frame_CHW_pycuda = cap.read()     #380fps, 200% CPU load, dtype is [pycuda array]
+ret, frame_CHW_pycudamem = cap.read_cudamem()  #dtype is  [pycuda mem_alloc]
+ret, frame_CHW_CUDA = cap.read_torch()  #dtype is  [pytorch tensor]
 ret, _ = cap.read_torch(frame_CHW_CUDA)  #no copy, but need to specify the output memory
 
 frame_CHW_pycuda[:] = (frame_CHW_pycuda - mean) / std  #normalize
 ```
 
-Why `toCUDA` is faster in your deeplearning pipeline?
-> 1. The ffmpeg uses the cpu to convert video pix_fmt from original YUV to RGB24, which is slow. The ffmpegcv use the cuda to accelerate pix_fmt convertion.
+How can `toCUDA` make it faster in your deeplearning pipeline than `opencv` or `ffmpeg`?
+> 1. The opencv/ffmpeg uses the cpu to convert video pix_fmt from original YUV to RGB24, which is slow. The ffmpegcv use the cuda to accelerate pix_fmt convertion.
 > 2. Use `yuv420p` or `nv12` can save the cpu load and reduce the memory copy from CPU to GPU.
-> 2. The ffmpeg stores the image as HWC format. The ffmpegcv can use HWC & CHW format to accelerate the video reading.
+> 3. The ffmpeg stores the image as HWC format. The ffmpegcv can use HWC & CHW format to accelerate the video reading.
 
 ## Video Writer
 ---
